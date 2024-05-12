@@ -1,0 +1,65 @@
+using System;
+using System.Net;
+using System.Text.Json;
+namespace BrewingCoffeeAPI
+ 	
+{
+    class Program
+    {
+        static int CoffeeCount = 0;
+
+        static void Main(string[] args)
+        {
+          
+            var listener = new HttpListener();
+            listener.Prefixes.Add("http://localhost:8080/");
+            listener.Start();
+
+            Console.WriteLine("Listening for requests...");
+
+            while (true)
+            {
+              
+                var context = listener.GetContext();
+                var request = context.Request;
+                var response = context.Response;
+
+                
+                if (DateTime.Today.Month == 4 && DateTime.Today.Day == 1)
+                {
+                    response.StatusCode = (int)HttpStatusCode.ResetContent;
+                    Console.WriteLine("I’m a teapot");
+                    continue;
+                }
+
+                CoffeeCount ++;
+
+                
+                if (CoffeeCount % 5 == 0)
+                {
+                    response.StatusCode = (int)HttpStatusCode.ServiceUnavailable;
+                    Console.WriteLine("Coffee is Out of Stock");
+                    continue;
+                }
+
+              
+                var responseBody = JsonSerializer.Serialize(new
+                {
+                    message = "Your piping hot coffee is ready",
+                    prepared = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:sszzz")
+                });
+
+                response.StatusCode = (int)HttpStatusCode.OK;
+                response.ContentType = "application/json";
+                response.ContentEncoding = System.Text.Encoding.UTF8;
+
+                var buffer = System.Text.Encoding.UTF8.GetBytes(responseBody);
+                response.ContentLength64 = buffer.Length;
+
+                var output = response.OutputStream;
+                output.Write(buffer, 0, buffer.Length);
+                output.Close();
+            }
+        }
+    }
+}
